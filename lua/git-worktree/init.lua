@@ -36,25 +36,22 @@ M.setup_git_info = function()
             -- if in worktree git dir returns absolute path
 
             -- try to find the dot git folder (non-bare repo)
-            local git_dir = Path:new(stdout)
-            local has_dot_git = false
-            for _, dir in ipairs(git_dir:_split()) do
-                if dir == ".git" then
-                    has_dot_git = true
-                    break
-                end
-            end
+            local has_dot_git = (stdout == ".git") or (stdout:find("[/\\]%.git") ~= nil)
 
             if has_dot_git then
                 if stdout == ".git" then
                     git_worktree_root = cwd
                 else
                     local start = stdout:find("%.git")
-                    git_worktree_root = stdout:sub(1,start - 2)
+                    git_worktree_root = stdout:sub(1, start-2)
                 end
             else
-                local start = stdout:find("/worktrees/")
-                git_worktree_root = stdout:sub(0, start - 1)
+                local start = stdout:find("[/\\]worktrees[/\\]")
+                if start == nil then
+                    git_worktree_root = stdout
+                else
+                    git_worktree_root = stdout:sub(0, start - 1)
+                end
             end
         elseif stdout == "." then
             -- we are in the root git dir
@@ -150,14 +147,13 @@ local function change_dirs(path)
 
     local previous_worktree = current_worktree_path
 
-    -- vim.loop.chdir(worktree_path)
     if Path:new(worktree_path):exists() then
         local cmd = string.format("%s %s", M._config.change_directory_command, worktree_path)
         status:log().debug("Changing to directory " .. worktree_path)
         vim.cmd(cmd)
         current_worktree_path = worktree_path
     else
-        status:error('Could not chang to directory: ' ..worktree_path)
+        status:error('Could not change to directory: ' ..worktree_path)
     end
 
     if M._config.clearjumps_on_change then
@@ -473,10 +469,21 @@ M.set_current_worktree_path = function(wd)
     current_worktree_path = wd
 end
 
+local switch_oil_buf = function(prev_path)
+    local cwd = vim.loop.cwd()
+    local current_buf_name = vim.api.nvim_buf_get_name(0)
+
+    local buf_prefix_len = #"oil:///" + #prev_path
+    local buf_postfix = string.sub(current_buf_name, buf_prefix_len)
+
+    require("oil").open(cwd .. buf_postfix)
+end
+
 M.update_current_buffer = function(prev_path)
     if prev_path == nil then
         return false
     end
+
 
     local cwd = vim.loop.cwd()
     local current_buf_name = vim.api.nvim_buf_get_name(0)
@@ -484,8 +491,14 @@ M.update_current_buffer = function(prev_path)
         return false
     end
 
-    local name = Path:new(current_buf_name):absolute()
+    local is_oil_buf = string.find(current_buf_name, "^oil:///") == 1
+    if is_oil_buf then
+        switch_oil_buf(prev_path)
+    end
+
+    local name = Path:new(current_buf_name):absolute():gsub("\\", "/")
     local start, fin = string.find(name, cwd..Path.path.sep, 1, true)
+    -- print(name, cwd..Path.path.sep, start, fin)
     if start ~= nil then
         return true
     end
