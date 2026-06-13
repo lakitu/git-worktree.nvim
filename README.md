@@ -20,8 +20,13 @@ fix that).
 
 <!-- mdformat-toc end -->
 
+## Why does this fork exist?
+I was having some issues with git-worktree where update_current_buffer was throwing errors. Found it was because 
+Windows sometimes uses backslashes and sometimes forward-slashes for file paths. Fixed this bug, and while I was at it, 
+added functionality for updating oil buffers to the other worktree if possible.
+
 ## Known Issues<a name="known-issues"></a>
-There are a few known issues.  I'll try to be actively filing them in the issues.  If you experience something, and it's not an issue, feel free to make an issue!  Even if it's a dupe I am just happy for the contribution.
+There are a few known issues.  I don't know them!  That said, if you do have issues, please file them, I'd love to take a look.
 
 ## Dependencies<a name="dependencies"></a>
 
@@ -34,11 +39,8 @@ Optional telescope.nvim for telescope extension
 First, install the plugin the usual way you prefer.
 
 ```console
-Plug 'ThePrimeagen/git-worktree.nvim'
+vim.pack.add({ "https://github.com/lakitu/git-worktree.nvim" })
 ```
-
-Next, re-source your `vimrc`/`init.vim` and execute `PlugInstall` to ensure you have the plugin
-installed.
 
 ## Setup<a name="setup"></a>
 
